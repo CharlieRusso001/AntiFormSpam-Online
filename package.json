@@ -1,0 +1,24 @@
+{
+  "name": "anti-form-spam-online",
+  "version": "1.0.0",
+  "description": "A comprehensive spam detection system for web forms using EmailJS and other form libraries",
+  "main": "src/anti-form-spam.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "spam",
+    "form",
+    "emailjs",
+    "validation",
+    "bot-detection",
+    "anti-spam"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": ""
+  }
+}
+

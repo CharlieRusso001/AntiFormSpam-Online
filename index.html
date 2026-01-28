@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AntiFormSpam - Live Spam Detector</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #000000;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: #000000;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(255, 255, 255, 0.1);
+            border: 2px solid #ffffff;
+            padding: 40px;
+            max-width: 900px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #ffffff;
+            margin-bottom: 10px;
+            font-size: 32px;
+            text-align: center;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            color: #cccccc;
+            margin-bottom: 30px;
+            font-size: 16px;
+            text-align: center;
+        }
+
+        .input-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #ffffff;
+            font-weight: 600;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="tel"],
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ffffff;
+            border-radius: 4px;
+            font-size: 16px;
+            font-family: inherit;
+            background: #000000;
+            color: #ffffff;
+            transition: all 0.3s;
+        }
+
+        input:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #ffffff;
+            box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
+        }
+
+        input.field-spam,
+        textarea.field-spam {
+            border-color: #ffffff;
+            background: #1a1a1a;
+        }
+
+        input.field-valid,
+        textarea.field-valid {
+            border-color: #ffffff;
+            background: #000000;
+        }
+
+        input::placeholder,
+        textarea::placeholder {
+            color: #666666;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        .field-result {
+            margin-top: 8px;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 13px;
+            display: none;
+            border-left: 3px solid;
+        }
+
+        .field-result.show {
+            display: block;
+        }
+
+        .field-result.spam {
+            background: #1a1a1a;
+            border-left-color: #ffffff;
+            color: #ffffff;
+        }
+
+        .field-result.valid {
+            background: #1a1a1a;
+            border-left-color: #ffffff;
+            color: #ffffff;
+        }
+
+        .overall-result {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 4px;
+            transition: all 0.3s;
+            border: 2px solid #ffffff;
+        }
+
+        .overall-result.spam {
+            background: #1a1a1a;
+            border-color: #ffffff;
+            color: #ffffff;
+        }
+
+        .overall-result.valid {
+            background: #000000;
+            border-color: #ffffff;
+            color: #ffffff;
+        }
+
+        .overall-result.neutral {
+            background: #000000;
+            border-color: #ffffff;
+            color: #cccccc;
+        }
+
+        .result-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .status-text {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .status-text.spam {
+            color: #ffffff;
+        }
+
+        .status-text.valid {
+            color: #ffffff;
+        }
+
+        .status-text.neutral {
+            color: #cccccc;
+        }
+
+        .issues-list {
+            margin-top: 15px;
+        }
+
+        .issues-list ul {
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+
+        .issues-list li {
+            margin: 8px 0;
+            color: #ffffff;
+            font-size: 14px;
+        }
+
+        .field-summary {
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+
+        .overall-result.spam .field-summary {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .field-summary-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            font-size: 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .overall-result.spam .field-summary-item {
+            border-bottom-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .field-summary-item:last-child {
+            border-bottom: none;
+        }
+
+        .field-summary-label {
+            color: #cccccc;
+            font-weight: 500;
+        }
+
+        .overall-result.spam .field-summary-label {
+            color: #ffffff;
+        }
+
+        .field-summary-status {
+            font-weight: 600;
+        }
+
+        .field-summary-status.spam {
+            color: #ffffff;
+        }
+
+        .field-summary-status.valid {
+            color: #ffffff;
+        }
+
+        .overall-result.spam .field-summary-status.valid {
+            color: #ffffff;
+        }
+
+        .examples {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 2px solid #ffffff;
+        }
+
+        .examples-title {
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #ffffff;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 12px;
+        }
+
+        .example-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .example-btn {
+            padding: 10px 20px;
+            background: #000000;
+            border: 2px solid #ffffff;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            color: #ffffff;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .example-btn:hover {
+            background: #ffffff;
+            color: #000000;
+        }
+
+        .example-btn.spam {
+            background: #000000;
+            color: #ffffff;
+        }
+
+        .example-btn.spam:hover {
+            background: #ffffff;
+            color: #000000;
+        }
+
+        .example-btn.valid {
+            background: #000000;
+            color: #ffffff;
+        }
+
+        .example-btn.valid:hover {
+            background: #ffffff;
+            color: #000000;
+        }
+
+        .ip-info-section {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 2px solid #ffffff;
+        }
+
+        .ip-info-title {
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #ffffff;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 12px;
+        }
+
+        .ip-info-content {
+            background: #1a1a1a;
+            border: 2px solid #ffffff;
+            border-radius: 4px;
+            padding: 20px;
+            font-size: 13px;
+            color: #ffffff;
+        }
+
+        .ip-info-loading {
+            color: #cccccc;
+            font-style: italic;
+        }
+
+        .ip-info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .ip-info-item:last-child {
+            border-bottom: none;
+        }
+
+        .ip-info-label {
+            color: #cccccc;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 11px;
+        }
+
+        .ip-info-value {
+            color: #ffffff;
+            font-weight: 600;
+            font-family: monospace;
+            text-align: right;
+        }
+
+        .ip-info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        @media (max-width: 600px) {
+            .ip-info-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 25px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AntiFormSpam Detector</h1>
+        <p class="subtitle">Enter information in separate fields for accurate spam detection</p>
+
+        <div class="input-group">
+            <label for="name-input">Name:</label>
+            <input type="text" id="name-input" placeholder="Enter name (e.g., John Smith)">
+            <div id="name-result" class="field-result"></div>
+        </div>
+
+        <div class="input-group">
+            <label for="email-input">Email:</label>
+            <input type="email" id="email-input" placeholder="Enter email (e.g., john@example.com)">
+            <div id="email-result" class="field-result"></div>
+        </div>
+
+        <div class="input-group">
+            <label for="phone-input">Phone:</label>
+            <input type="tel" id="phone-input" placeholder="Enter phone (e.g., +1 555-123-4567)">
+            <div id="phone-result" class="field-result"></div>
+        </div>
+
+        <div class="input-group">
+            <label for="description-input">Description:</label>
+            <textarea id="description-input" placeholder="Enter description or message"></textarea>
+            <div id="description-result" class="field-result"></div>
+        </div>
+
+        <div id="overall-result" class="overall-result neutral">
+            <div class="result-header">
+                <span class="status-text neutral">Waiting for input...</span>
+            </div>
+                    <p style="color: #cccccc; margin-top: 10px;">Start typing in the fields above to see spam detection results</p>
+        </div>
+
+        <div class="examples">
+            <div class="examples-title">Try these examples:</div>
+            <div class="example-buttons">
+                <button class="example-btn spam" onclick="loadSpamExample()">Load Spam Example</button>
+                <button class="example-btn valid" onclick="loadValidExample()">Load Valid Example</button>
+                <button class="example-btn" onclick="clearAll()">Clear All</button>
+            </div>
+        </div>
+
+        <div class="ip-info-section">
+            <div class="ip-info-title">Connection Information</div>
+            <div id="ip-info" class="ip-info-content">
+                <div class="ip-info-loading">Loading connection information...</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="src/anti-form-spam.js"></script>
+    <script>
+        // Initialize spam detector
+        const spamDetector = new AntiFormSpam({
+            entropyThreshold: 3.5,
+            debug: false,
+            validatePhone: true,
+            validateWebsite: true,
+            useEmailValidatorApi: true   // Enhanced email validation (no external APIs)
+        });
+
+        const nameInput = document.getElementById('name-input');
+        const emailInput = document.getElementById('email-input');
+        const phoneInput = document.getElementById('phone-input');
+        const descriptionInput = document.getElementById('description-input');
+        const nameResult = document.getElementById('name-result');
+        const emailResult = document.getElementById('email-result');
+        const phoneResult = document.getElementById('phone-result');
+        const descriptionResult = document.getElementById('description-result');
+        const overallResult = document.getElementById('overall-result');
+
+        let fieldResults = {
+            name: null,
+            email: null,
+            phone: null,
+            description: null
+        };
+
+        // Analyze individual field
+        async function analyzeField(fieldName, value, inputElement, resultElement) {
+            if (!value || value.trim().length === 0) {
+                resultElement.className = 'field-result';
+                resultElement.classList.remove('show');
+                inputElement.classList.remove('field-spam', 'field-valid');
+                fieldResults[fieldName] = null;
+                updateOverallResult();
+                return;
+            }
+
+            const trimmedValue = value.trim();
+            
+            // For phone numbers, use enhanced validation (free, no API key required)
+            if (fieldName === 'phone') {
+                // Show loading state
+                resultElement.className = 'field-result';
+                resultElement.classList.add('show');
+                resultElement.innerHTML = 'Validating phone number...';
+                
+                try {
+                    const apiResult = await spamDetector.validatePhoneWithAPI(trimmedValue);
+                    const validation = spamDetector.validateField(fieldName, trimmedValue, fieldName);
+                    
+                    // Combine enhanced validation result with basic validation
+                    const combinedValidation = {
+                        valid: validation.valid && apiResult.valid,
+                        issues: [...validation.issues]
+                    };
+                    
+                    if (!apiResult.valid && apiResult.details && apiResult.details.reason) {
+                        combinedValidation.issues.push(apiResult.details.reason);
+                    }
+                    
+                    fieldResults[fieldName] = combinedValidation;
+                    
+                    if (!combinedValidation.valid) {
+                        resultElement.className = 'field-result spam show';
+                        resultElement.innerHTML = `Spam detected: ${combinedValidation.issues[0] || 'Invalid phone number'}`;
+                        inputElement.classList.remove('field-valid');
+                        inputElement.classList.add('field-spam');
+                    } else {
+                        resultElement.className = 'field-result valid show';
+                        const details = apiResult.details;
+                        let statusText = 'Valid';
+                        if (details) {
+                            if (details.area_code) {
+                                statusText = `Valid (Area Code: ${details.area_code})`;
+                                if (details.line_type && details.line_type !== 'unknown') {
+                                    statusText += ` - ${details.line_type.replace('_', ' ')}`;
+                                }
+                            } else if (details.line_type && details.line_type !== 'unknown') {
+                                statusText = `Valid (${details.line_type.replace('_', ' ')})`;
+                            }
+                        }
+                        resultElement.innerHTML = statusText;
+                        inputElement.classList.remove('field-spam');
+                        inputElement.classList.add('field-valid');
+                    }
+                } catch (error) {
+                    // Fall back to basic validation on error
+                    const validation = spamDetector.validateField(fieldName, trimmedValue, fieldName);
+                    fieldResults[fieldName] = validation;
+                    
+                    if (!validation.valid) {
+                        resultElement.className = 'field-result spam show';
+                        resultElement.innerHTML = `Spam detected: ${validation.issues[0] || 'Suspicious content'}`;
+                        inputElement.classList.remove('field-valid');
+                        inputElement.classList.add('field-spam');
+                    } else {
+                        resultElement.className = 'field-result valid show';
+                        resultElement.innerHTML = `Valid`;
+                        inputElement.classList.remove('field-spam');
+                        inputElement.classList.add('field-valid');
+                    }
+                }
+            } else if (fieldName === 'email') {
+                // Enhanced email validation (free, no API key required)
+                resultElement.className = 'field-result';
+                resultElement.classList.add('show');
+                resultElement.innerHTML = 'Validating email...';
+                
+                try {
+                    const apiResult = await spamDetector.validateEmailWithAPI(trimmedValue);
+                    const validation = spamDetector.validateField(fieldName, trimmedValue, fieldName);
+                    
+                    // Combine enhanced validation result with basic validation
+                    const combinedValidation = {
+                        valid: validation.valid && apiResult.valid,
+                        issues: [...validation.issues]
+                    };
+                    
+                    if (!apiResult.valid && apiResult.details && apiResult.details.reason) {
+                        combinedValidation.issues.push(apiResult.details.reason);
+                    }
+                    
+                    fieldResults[fieldName] = combinedValidation;
+                    
+                    if (!combinedValidation.valid) {
+                        resultElement.className = 'field-result spam show';
+                        resultElement.innerHTML = `Spam detected: ${combinedValidation.issues[0] || 'Invalid email'}`;
+                        inputElement.classList.remove('field-valid');
+                        inputElement.classList.add('field-spam');
+                    } else {
+                        resultElement.className = 'field-result valid show';
+                        const details = apiResult.details;
+                        let statusText = 'Valid';
+                        if (details && details.free_provider) {
+                            statusText = 'Valid (free provider)';
+                        } else if (details && details.domain) {
+                            statusText = `Valid (${details.domain})`;
+                        }
+                        resultElement.innerHTML = statusText;
+                        inputElement.classList.remove('field-spam');
+                        inputElement.classList.add('field-valid');
+                    }
+                } catch (error) {
+                    // Fall back to basic validation on error
+                    const validation = spamDetector.validateField(fieldName, trimmedValue, fieldName);
+                    fieldResults[fieldName] = validation;
+                    
+                    if (!validation.valid) {
+                        resultElement.className = 'field-result spam show';
+                        resultElement.innerHTML = `Spam detected: ${validation.issues[0] || 'Suspicious content'}`;
+                        inputElement.classList.remove('field-valid');
+                        inputElement.classList.add('field-spam');
+                    } else {
+                        resultElement.className = 'field-result valid show';
+                        resultElement.innerHTML = `Valid`;
+                        inputElement.classList.remove('field-spam');
+                        inputElement.classList.add('field-valid');
+                    }
+                }
+            } else {
+                // Standard validation for other fields
+                const validation = spamDetector.validateField(fieldName, trimmedValue, fieldName);
+                fieldResults[fieldName] = validation;
+
+                if (!validation.valid) {
+                    resultElement.className = 'field-result spam show';
+                    resultElement.innerHTML = `Spam detected: ${validation.issues[0] || 'Suspicious content'}`;
+                    inputElement.classList.remove('field-valid');
+                    inputElement.classList.add('field-spam');
+                } else {
+                    resultElement.className = 'field-result valid show';
+                    resultElement.innerHTML = `Valid`;
+                    inputElement.classList.remove('field-spam');
+                    inputElement.classList.add('field-valid');
+                }
+            }
+
+            updateOverallResult();
+        }
+
+        // Update overall result
+        function updateOverallResult() {
+            const results = Object.values(fieldResults).filter(r => r !== null);
+            
+            if (results.length === 0) {
+                overallResult.className = 'overall-result neutral';
+                overallResult.innerHTML = `
+                    <div class="result-header">
+                        <span class="status-text neutral">Waiting for input...</span>
+                    </div>
+                    <p style="color: #cccccc; margin-top: 10px;">Start typing in the fields above to see spam detection results</p>
+                `;
+                return;
+            }
+
+            const spamFields = results.filter(r => !r.valid);
+            const allValid = spamFields.length === 0;
+
+            if (allValid) {
+                overallResult.className = 'overall-result valid';
+                overallResult.innerHTML = `
+                    <div class="result-header">
+                        <span class="status-text valid">ALL FIELDS VALID</span>
+                    </div>
+                    <p style="color: #ffffff; margin-top: 10px; font-weight: 500;">All fields appear to be legitimate.</p>
+                    ${generateFieldSummary()}
+                `;
+            } else {
+                overallResult.className = 'overall-result spam';
+                const allIssues = [];
+                Object.keys(fieldResults).forEach(field => {
+                    if (fieldResults[field] && !fieldResults[field].valid) {
+                        fieldResults[field].issues.forEach(issue => {
+                            allIssues.push(`${field}: ${issue}`);
+                        });
+                    }
+                });
+
+                overallResult.innerHTML = `
+                    <div class="result-header">
+                        <span class="status-text spam">SPAM DETECTED</span>
+                    </div>
+                    <p style="color: #ffffff; margin-top: 10px; font-weight: 500;">One or more fields contain spam.</p>
+                    <div class="issues-list">
+                        <strong>Issues found:</strong>
+                        <ul>
+                            ${allIssues.map(issue => `<li>${issue}</li>`).join('')}
+                        </ul>
+                    </div>
+                    ${generateFieldSummary()}
+                `;
+            }
+        }
+
+        // Generate field summary
+        function generateFieldSummary() {
+            const fields = [
+                { key: 'name', label: 'Name' },
+                { key: 'email', label: 'Email' },
+                { key: 'phone', label: 'Phone' },
+                { key: 'description', label: 'Description' }
+            ];
+
+            let summary = '<div class="field-summary"><strong>Field Summary:</strong>';
+            fields.forEach(field => {
+                const result = fieldResults[field.key];
+                if (result) {
+                    const status = result.valid ? 'valid' : 'spam';
+                    const statusText = result.valid ? 'Valid' : 'Spam';
+                    summary += `
+                        <div class="field-summary-item">
+                            <span class="field-summary-label">${field.label}:</span>
+                            <span class="field-summary-status ${status}">${statusText}</span>
+                        </div>
+                    `;
+                } else {
+                    summary += `
+                        <div class="field-summary-item">
+                            <span class="field-summary-label">${field.label}:</span>
+                            <span class="field-summary-status" style="color: #cccccc;">Not analyzed</span>
+                        </div>
+                    `;
+                }
+            });
+            summary += '</div>';
+            return summary;
+        }
+
+        // Real-time analysis with debounce
+        let debounceTimers = {};
+
+        function setupFieldListener(fieldName, inputElement, resultElement) {
+            inputElement.addEventListener('input', function() {
+                clearTimeout(debounceTimers[fieldName]);
+                debounceTimers[fieldName] = setTimeout(() => {
+                    analyzeField(fieldName, this.value, this, resultElement);
+                }, (fieldName === 'phone' || fieldName === 'email') ? 500 : 300); // Longer debounce for phone/email
+            });
+
+            inputElement.addEventListener('paste', function() {
+                setTimeout(() => {
+                    analyzeField(fieldName, this.value, this, resultElement);
+                }, 100);
+            });
+        }
+
+        // Setup listeners for all fields
+        setupFieldListener('name', nameInput, nameResult);
+        setupFieldListener('email', emailInput, emailResult);
+        setupFieldListener('phone', phoneInput, phoneResult);
+        setupFieldListener('description', descriptionInput, descriptionResult);
+
+        // Example data
+        async function loadSpamExample() {
+            nameInput.value = 'LfsMZhZlplNirUMbNpI';
+            emailInput.value = 'oroq.e.ku1.45@gmail.com';
+            phoneInput.value = '+1 4784995788';
+            descriptionInput.value = 'yRkleNRquKzGJvbNEJlixdqY';
+            
+            await analyzeField('name', nameInput.value, nameInput, nameResult);
+            await analyzeField('email', emailInput.value, emailInput, emailResult);
+            await analyzeField('phone', phoneInput.value, phoneInput, phoneResult);
+            await analyzeField('description', descriptionInput.value, descriptionInput, descriptionResult);
+        }
+
+        async function loadValidExample() {
+            nameInput.value = 'John Smith';
+            emailInput.value = 'john.smith@example.com';
+            phoneInput.value = '+1 555-123-4567';
+            descriptionInput.value = 'Hello, I am interested in discussing a potential project with your team. I would like to learn more about your services.';
+            
+            await analyzeField('name', nameInput.value, nameInput, nameResult);
+            await analyzeField('email', emailInput.value, emailInput, emailResult);
+            await analyzeField('phone', phoneInput.value, phoneInput, phoneResult);
+            await analyzeField('description', descriptionInput.value, descriptionInput, descriptionResult);
+        }
+
+        async function clearAll() {
+            nameInput.value = '';
+            emailInput.value = '';
+            phoneInput.value = '';
+            descriptionInput.value = '';
+            
+            await analyzeField('name', '', nameInput, nameResult);
+            await analyzeField('email', '', emailInput, emailResult);
+            await analyzeField('phone', '', phoneInput, phoneResult);
+            await analyzeField('description', '', descriptionInput, descriptionResult);
+        }
+
+        // Fetch and display IP information
+        async function fetchIPInfo() {
+            const ipInfoDiv = document.getElementById('ip-info');
+            
+            try {
+                // Use free IP geolocation API (no API key required)
+                // ipapi.co provides 1000 free requests per day
+                const response = await fetch('https://ipapi.co/json/');
+                
+                if (!response.ok) {
+                    throw new Error(`API returned ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                // Display IP information
+                let html = '<div class="ip-info-grid">';
+                
+                // IP Address
+                if (data.ip) {
+                    html += `
+                        <div class="ip-info-item">
+                            <span class="ip-info-label">IP Address:</span>
+                            <span class="ip-info-value">${data.ip}</span>
+                        </div>
+                    `;
+                }
+                
+                // Location
+                if (data.city || data.region || data.country_name) {
+                    const location = [data.city, data.region, data.country_name].filter(Boolean).join(', ');
+                    html += `
+                        <div class="ip-info-item">
+                            <span class="ip-info-label">Location:</span>
+                            <span class="ip-info-value">${location}</span>
+                        </div>
+                    `;
+                }
+                
+                // Country Code
+                if (data.country_code) {
+                    html += `
+                        <div class="ip-info-item">
+                            <span class="ip-info-label">Country:</span>
+                            <span class="ip-info-value">${data.country_code} (${data.country_name || ''})</span>
+                        </div>
+                    `;
+                }
+                
+                // ISP/Organization
+                if (data.org || data.asn) {
+                    html += `
+                        <div class="ip-info-item">
+                            <span class="ip-info-label">ISP/Organization:</span>
+                            <span class="ip-info-value">${data.org || `ASN: ${data.asn}`}</span>
+                        </div>
+                    `;
+                }
+                
+                // Timezone
+                if (data.timezone) {
+                    html += `
+                        <div class="ip-info-item">
+                            <span class="ip-info-label">Timezone:</span>
+                            <span class="ip-info-value">${data.timezone}</span>
+                        </div>
+                    `;
+                }
+                
+                // Postal Code
+                if (data.postal) {
+                    html += `
+                        <div class="ip-info-item">
+                            <span class="ip-info-label">Postal Code:</span>
+                            <span class="ip-info-value">${data.postal}</span>
+                        </div>
+                    `;
+                }
+                
+                // Latitude/Longitude (approximate)
+                if (data.latitude && data.longitude) {
+                    html += `
+                        <div class="ip-info-item">
+                            <span class="ip-info-label">Coordinates:</span>
+                            <span class="ip-info-value">${data.latitude.toFixed(4)}, ${data.longitude.toFixed(4)}</span>
+                        </div>
+                    `;
+                }
+                
+                // Currency
+                if (data.currency) {
+                    html += `
+                        <div class="ip-info-item">
+                            <span class="ip-info-label">Currency:</span>
+                            <span class="ip-info-value">${data.currency} (${data.currency_name || ''})</span>
+                        </div>
+                    `;
+                }
+                
+                // Languages
+                if (data.languages) {
+                    html += `
+                        <div class="ip-info-item">
+                            <span class="ip-info-label">Languages:</span>
+                            <span class="ip-info-value">${data.languages}</span>
+                        </div>
+                    `;
+                }
+                
+                // Calling Code
+                if (data.country_calling_code) {
+                    html += `
+                        <div class="ip-info-item">
+                            <span class="ip-info-label">Calling Code:</span>
+                            <span class="ip-info-value">+${data.country_calling_code}</span>
+                        </div>
+                    `;
+                }
+                
+                html += '</div>';
+                ipInfoDiv.innerHTML = html;
+                
+            } catch (error) {
+                console.error('Error fetching IP info:', error);
+                ipInfoDiv.innerHTML = `
+                    <div class="ip-info-item">
+                        <span class="ip-info-label">Error:</span>
+                        <span class="ip-info-value" style="color: #ff6b6b;">Unable to load connection information</span>
+                    </div>
+                `;
+            }
+        }
+
+        // Load IP information when page loads
+        fetchIPInfo();
+    </script>
+</body>
+</html>
